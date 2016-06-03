@@ -1,0 +1,80 @@
+---
+
+- name: set AMI short name fact
+  set_fact:
+    _aws_ec2_ami_shortname: >-
+      {{ _aws_ec2_ami_file | basename | splitext | first }}
+
+- name: read variables for AMI '{{ _aws_ec2_ami_shortname }}'
+  include_vars: '{{ _aws_ec2_ami_file }}'
+
+- name: find source AMI
+  ec2_ami_find:
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    architecture: >-
+      {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
+    hypervisor: >-
+      {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
+    is_public: >-
+      {{ aws_ec2_ami.source_ami_filters.is_public           | default(None) }}
+    name: >-
+      {{ aws_ec2_ami.source_ami_filters.name                | default(None) }}
+    owner: >-
+      {{ aws_ec2_ami.source_ami_filters.owner               | default(None) }}
+    platform: >-
+      {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
+    sort: >-
+      {{ aws_ec2_ami.source_ami_filters.sort                | default(None) }}
+    sort_order: >-
+      {{ aws_ec2_ami.source_ami_filters.sort_order          | default(None) }}
+    state: >-
+      {{ aws_ec2_ami.source_ami_filters.state               | default(None) }}
+    virtualization_type: >-
+      {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
+  register: _aws_ec2_ami_source
+
+- name: find target AMI (if it already exists)
+  ec2_ami_find:
+    owner: '{{ aws_account }}'
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    architecture: >-
+      {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
+    hypervisor: >-
+      {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
+    name: >-
+      {{ aws_ec2_ami.source_ami_filters.name                | default(None) }}
+    platform: >-
+      {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
+    sort: >-
+      {{ aws_ec2_ami.source_ami_filters.sort                | default(None) }}
+    sort_order: >-
+      {{ aws_ec2_ami.source_ami_filters.sort_order          | default(None) }}
+    state: >-
+      {{ aws_ec2_ami.source_ami_filters.state               | default(None) }}
+    virtualization_type: >-
+      {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
+  register: _aws_ec2_ami_target
+
+- name: add instance to those to be configured if target doesn't exist
+  set_fact:
+    _aws_ec2_ami_instances: >-
+      {{ _aws_ec2_ami_instances
+         | default([])
+         | union([
+                  aws_ec2_ami.build_instance
+                  | combine({
+                             'description':
+                               _aws_ec2_ami_source.results.0.description
+                               + ' [h3]',
+                             'image': _aws_ec2_ami_source.results.0.ami_id,
+                             'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
+                             'environment': 'ami',
+                             'function': 'ami-build-' + _aws_ec2_ami_shortname,
+                             'kms_key_id': aws_ec2_ami.kms_key_id | default(None),
+                             'platform': _aws_ec2_ami_source.results.0.platform,
+                            })
+                 ])
+      }}
+  when: '_aws_ec2_ami_target.results == []'

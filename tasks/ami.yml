@@ -1,0 +1,42 @@
+---
+
+- name: gather facts about temporary instance for '{{ instance.description }}' AMI
+  ec2_remote_facts:
+    filters:
+      instance-state-name: ['running']
+      'tag:Name':        '{{ instance.hostname }}'
+      'tag:Environment': 'ami'
+      'tag:Function':    '{{ instance.function }}'
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+  register: _aws_ec2_ami_instance_facts
+
+- name: wait for RDP or SSH accessibility
+  wait_for:
+    port: '{{ ("3389"
+               if instance.platform == "windows"
+               else "22") }}'
+    host: '{{ _aws_ec2_ami_instance_facts.instances.0.private_ip_address }}'
+    timeout: 600
+
+- name: create AMI
+  ec2_ami:
+    profile: '{{ aws_profile }}'
+    instance_id: '{{ _aws_ec2_ami_instance_facts.instances.0.id }}'
+    region: '{{ aws_region }}'
+    state: present
+    description: '{{ instance.description }}'
+    name: '{{ instance.description }}'
+    tags:
+      Encrypt With: '{{ instance.kms_key_id | default(omit) }}'
+    wait: yes
+  async: 7200
+  poll: 0
+  register: _aws_ec2_ami_create
+
+- name: save AMI creation job ID
+  set_fact:
+    _aws_ec2_ami_job_ids: >-
+      {{ _aws_ec2_ami_job_ids
+         | default([])
+         | union([_aws_ec2_ami_create]) }}

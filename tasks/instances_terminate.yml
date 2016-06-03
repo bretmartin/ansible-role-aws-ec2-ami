@@ -1,0 +1,19 @@
+---
+
+- name: gather facts about temporary instance for '{{ instance.description }}' AMI
+  ec2_remote_facts:
+    filters:
+      instance-state-name: ['running']
+      'tag:Name':        '{{ instance.hostname }}'
+      'tag:Environment': 'ami'
+      'tag:Function':    '{{ instance.function }}'
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+  register: _aws_ec2_ami_instance_facts
+
+- name: terminate temporary instances
+  ec2:
+    profile: '{{ aws_profile }}'
+    state: absent
+    region: '{{ aws_region }}'
+    instance_ids: '{{ _aws_ec2_ami_instance_facts.instances.0.id }}'

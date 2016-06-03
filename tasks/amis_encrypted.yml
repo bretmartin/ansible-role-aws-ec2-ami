@@ -1,0 +1,42 @@
+---
+
+- name: find AMIs that should be encrypted
+  ec2_ami_find:
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    ami_tags:
+      Encrypt With: '*'
+  register: _aws_ec2_ami_to_encrypt
+
+- name: 'copy to encrypted AMI'
+  ec2_ami_copy:
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    source_region: '{{ aws_region }}'
+    source_image_id: '{{ item.ami_id }}'
+    name: '{{ item["name"] + " [ENCRYPTED]" }}'
+    description: '{{ item.description + " [ENCRYPTED]" }}'
+    encrypted: yes
+    kms_key_id: '{{ item.tags["Encrypt With"] }}'
+    wait: yes
+  async: 7200
+  poll: 0
+  with_items: '{{ _aws_ec2_ami_to_encrypt.results }}'
+  register: _aws_ec2_ami_copy
+
+- name: wait for AMI creation to complete
+  async_status: jid={{ item.ansible_job_id }}
+  register: _aws_ec2_ami_jobs
+  until: _aws_ec2_ami_jobs.finished
+  retries: 300
+  delay: 10
+  with_items: '{{ _aws_ec2_ami_copy.results }}'
+
+- name: destroy unencrypted versions of encrypted AMIs
+  ec2_ami:
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    image_id: '{{ item.ami_id }}'
+    state: absent
+    delete_snapshot: True
+  with_items: '{{ _aws_ec2_ami_to_encrypt.results }}'

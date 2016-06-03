@@ -1,0 +1,58 @@
+---
+
+- name: set target AMI fact
+  set_fact:
+    _aws_ec2_ami: '{{ aws_ec2_ami_ami.split(",") }}'
+
+- name: set all configured AMIs fact
+  set_fact:
+    _aws_ec2_ami_all: >-
+      {{ _aws_ec2_ami_all
+         | default([])
+         | union([item | basename | splitext | first]) }}
+  with_fileglob: 'host_vars/{{ inventory_hostname }}/ec2-ami/*.yml'
+
+- name: set default target AMI fact
+  set_fact:
+    _aws_ec2_ami: '{{ _aws_ec2_ami_all }}'
+  when: '_aws_ec2_ami == [""]'
+
+- name: find source AMIs and determine what temporary instances are required
+  include: instances.yml
+  vars:
+    _aws_ec2_ami_file: >-
+      host_vars/{{ inventory_hostname }}/ec2-ami/{{ ami }}.yml
+  with_items: '{{ _aws_ec2_ami | difference(["defaults"]) }}'
+  loop_control:
+    loop_var: ami
+
+- include: roles/aws-vpc/tasks/vpc_id.yml
+
+- name: launch temporary instances
+  include: roles/aws-ec2/tasks/instance.yml
+  vars:
+    instance: '{{ item }}'
+  with_items: '{{ _aws_ec2_ami_instances }}'
+
+- name: create unencrypted AMIs
+  include: ami.yml
+  vars:
+    instance: '{{ item }}'
+  with_items: '{{ _aws_ec2_ami_instances }}'
+
+- name: wait for AMI creation to complete
+  async_status: jid={{ item.ansible_job_id }}
+  register: _aws_ec2_ami_jobs
+  until: _aws_ec2_ami_jobs.finished
+  retries: 300
+  delay: 10
+  with_items: '{{ _aws_ec2_ami_job_ids }}'
+
+- name: terminate temporary instances
+  include: instances_terminate.yml
+  vars:
+    instance: '{{ item }}'
+  with_items: '{{ _aws_ec2_ami_instances }}'
+
+- name: create encrypted AMIs
+  include: amis_encrypted.yml
