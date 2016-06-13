@@ -15,7 +15,7 @@
 - name: wait for RDP or SSH accessibility
   wait_for:
     port: '{{ ("3389"
-               if instance.platform == "windows"
+               if instance.ami_platform == "windows"
                else "22") }}'
     host: '{{ _aws_ec2_ami_instance_facts.instances.0.private_ip_address }}'
     timeout: 600
