@@ -57,6 +57,10 @@
       {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
   register: _aws_ec2_ami_target
 
+- name: initialize instance list
+  set_fact:
+    _aws_ec2_ami_instances: []
+
 - name: add instance to those to be configured if target doesn't exist
   set_fact:
     _aws_ec2_ami_instances: >-
