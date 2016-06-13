@@ -39,6 +39,8 @@
     owner: '{{ aws_account }}'
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
+    ami_tags:
+      Source AMI ID: '{{ _aws_ec2_ami_source.results.0.ami_id }}'
     architecture: >-
       {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
     hypervisor: >-
@@ -63,6 +65,8 @@
     owner: '{{ aws_account }}'
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
+    ami_tags:
+      Source AMI ID: '{{ _aws_ec2_ami_source.results.0.ami_id }}'
     architecture: >-
       {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
     hypervisor: >-

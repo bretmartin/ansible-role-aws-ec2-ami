@@ -22,6 +22,9 @@
          | regex_replace("\[h3 to-encrypt\]", "[h3 encrypted]") }}
     encrypted: yes
     kms_key_id: '{{ item.tags["KMS Key Alias"] }}'
+    tags:
+      Source AMI ID: '{{ item.tags["Source AMI ID"] }}'
+      To Encrypt: False
     wait: yes
   async: 7200
   poll: 0
