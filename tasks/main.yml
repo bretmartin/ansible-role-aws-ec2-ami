@@ -1,5 +1,13 @@
 ---
 
+- name: set global facts
+  set_fact:
+    _aws_ec2_ami_url: >-
+      https://console.aws.amazon.com/ec2/v2/home?region={{ aws_region }}#Images
+    _aws_vpc_url: >-
+      https://console.aws.amazon.com/ec2/v2/home?region={{
+        aws_region }}#Instances:tag:VPC={{ aws_vpc_name }}
+
 - name: set target AMI fact
   set_fact:
     _aws_ec2_ami: '{{ aws_ec2_ami_ami.split(",") }}'
@@ -11,6 +19,18 @@
          | default([])
          | union([item | basename | splitext | first]) }}
   with_fileglob: 'host_vars/{{ inventory_hostname }}/ec2-ami/*.yml'
+
+- name: call optional notifier
+  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  vars:
+    message: >
+      started running role <b>aws-ec2-ami</b>
+      on <a href="{{ _aws_ec2_ami_url }}">account {{ aws_profile }}</a>{%
+      if _aws_ec2_ami != [""]
+      -%}, AMI {% for a in _aws_ec2_ami -%}
+      <b>{{ a }}</b>{%
+      if not loop.last -%}, {% endif -%}{% endfor -%}{% endif -%}
+  when: notifier_role is defined
 
 - name: set default target AMI fact
   set_fact:
@@ -64,3 +84,11 @@
 
 - name: create encrypted AMIs
   include: amis_encrypted.yml
+
+- name: call optional notifier
+  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  vars:
+    message: >
+      finished running role <b>aws-ec2-ami</b>
+      on <a href="{{ _aws_ec2_ami_url }}">account {{ aws_profile }}</a>
+  when: notifier_role is defined
