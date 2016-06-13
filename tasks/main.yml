@@ -17,6 +17,10 @@
     _aws_ec2_ami: '{{ _aws_ec2_ami_all }}'
   when: '_aws_ec2_ami == [""]'
 
+- name: initialize instance list
+  set_fact:
+    _aws_ec2_ami_instances: []
+
 - name: find source AMIs and determine what temporary instances are required
   include: instances.yml
   vars:
