@@ -43,7 +43,7 @@
     notifier_role is defined and
     _aws_ec2_ami_to_encrypt.results
 
-- name: wait for AMI creation to complete
+- name: wait for AMI encryption to complete
   async_status: jid={{ item.ansible_job_id }}
   register: _aws_ec2_ami_jobs
   until: _aws_ec2_ami_jobs.finished
