@@ -44,7 +44,7 @@
     hypervisor: >-
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
-      {{ (_aws_ec2_ami_source.results.0.description + ' [h3 to-encrypt]')
+      {{ (_aws_ec2_ami_source.results.0.name + ' [h3 to-encrypt]')
                                                             | default(None) }}
     platform: >-
       {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
@@ -68,7 +68,7 @@
     hypervisor: >-
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
-      {{ (_aws_ec2_ami_source.results.0.description +
+      {{ (_aws_ec2_ami_source.results.0.name +
           (' [h3 encrypted]' if 'kms_key_alias' in aws_ec2_ami else ' [h3]'))
                                                             | default(None) }}
     platform: >-
@@ -91,18 +91,28 @@
          | union([
                   aws_ec2_ami.build_instance
                   | combine({
-                             'description':
+                             'ami_description':
                                _aws_ec2_ami_source.results.0.description +
                                (' [h3 to-encrypt]'
                                 if 'kms_key_alias' in aws_ec2_ami
                                 else ' [h3]'),
+                             'ami_name':
+                               _aws_ec2_ami_source.results.0.name +
+                               (' [h3 to-encrypt]'
+                                if 'kms_key_alias' in aws_ec2_ami
+                                else ' [h3]'),
+                             'description':
+                               _aws_ec2_ami_shortname +
+                               ' AMI build',
+                             'ami_shortname': _aws_ec2_ami_shortname,
                              'image': _aws_ec2_ami_source.results.0.ami_id,
                              'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
                              'environment': 'ami',
                              'function': 'ami-build-' + _aws_ec2_ami_shortname,
-                             'kms_key_alias':
+                             'ami_kms_key_alias':
                                aws_ec2_ami.kms_key_alias | default(None),
-                             'platform': _aws_ec2_ami_source.results.0.platform,
+                             'ami_platform':
+                               _aws_ec2_ami_source.results.0.platform,
                             })
                  ])
       }}

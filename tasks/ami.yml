@@ -1,6 +1,7 @@
 ---
 
-- name: gather facts about temporary instance for '{{ instance.description }}' AMI
+- name: >-
+    gather facts about temporary instance for '{{ instance.ami_shortname }}' AMI
   ec2_remote_facts:
     filters:
       instance-state-name: ['running']
@@ -25,11 +26,11 @@
     instance_id: '{{ _aws_ec2_ami_instance_facts.instances.0.id }}'
     region: '{{ aws_region }}'
     state: present
-    description: '{{ instance.description }}'
-    name: '{{ instance.description }}'
+    description: '{{ instance.ami_description }}'
+    name: '{{ instance.ami_name }}'
     tags:
-      To Encrypt: '{{ ("True" if instance.kms_key_alias else "False") }}'
-      KMS Key Alias: '{{ instance.kms_key_alias | default(None) }}'
+      To Encrypt: '{{ ("True" if instance.ami_kms_key_alias else "False") }}'
+      KMS Key Alias: '{{ instance.ami_kms_key_alias | default(None) }}'
     wait: yes
   async: 7200
   poll: 0
@@ -45,5 +46,5 @@
 - name: call optional notifier
   include: 'roles/{{ notifier_role }}/tasks/main.yml'
   vars:
-    message: started creating AMI <b>{{ instance.description }}</b>
+    message: started creating AMI <b>{{ instance.ami_shortname }}</b>
   when: notifier_role is defined

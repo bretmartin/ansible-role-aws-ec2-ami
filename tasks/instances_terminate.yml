@@ -1,6 +1,7 @@
 ---
 
-- name: gather facts about temporary instance for '{{ instance.description }}' AMI
+- name: >-
+    gather facts about temporary instance for '{{ instance.ami_shortname }}' AMI
   ec2_remote_facts:
     filters:
       instance-state-name: ['running']
@@ -22,5 +23,5 @@
   include: 'roles/{{ notifier_role }}/tasks/main.yml'
   vars:
     message: >
-      terminated temporary instance for AMI <b>{{ instance.description }}</b>
+      terminated temporary instance for AMI <b>{{ instance.ami_shortname }}</b>
   when: notifier_role is defined
