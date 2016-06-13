@@ -34,6 +34,30 @@
       {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
   register: _aws_ec2_ami_source
 
+- name: find intermediate AMI (if applicable, if it already exists)
+  ec2_ami_find:
+    owner: '{{ aws_account }}'
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    architecture: >-
+      {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
+    hypervisor: >-
+      {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
+    name: >-
+      {{ (_aws_ec2_ami_source.results.0.description + ' [h3 to-encrypt]')
+                                                            | default(None) }}
+    platform: >-
+      {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
+    sort: >-
+      {{ aws_ec2_ami.source_ami_filters.sort                | default(None) }}
+    sort_order: >-
+      {{ aws_ec2_ami.source_ami_filters.sort_order          | default(None) }}
+    state: >-
+      {{ aws_ec2_ami.source_ami_filters.state               | default(None) }}
+    virtualization_type: >-
+      {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
+  register: _aws_ec2_ami_intermediate
+
 - name: find target AMI (if it already exists)
   ec2_ami_find:
     owner: '{{ aws_account }}'
@@ -44,8 +68,8 @@
     hypervisor: >-
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
-      {{ (_aws_ec2_ami_source.results.0.description + ' [h3]' +
-          (' [ENCRYPTED]' if 'kms_key_alias' in aws_ec2_ami else ''))
+      {{ (_aws_ec2_ami_source.results.0.description +
+          (' [h3 encrypted]' if 'kms_key_alias' in aws_ec2_ami else ' [h3]'))
                                                             | default(None) }}
     platform: >-
       {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
@@ -68,8 +92,10 @@
                   aws_ec2_ami.build_instance
                   | combine({
                              'description':
-                               _aws_ec2_ami_source.results.0.description
-                               + ' [h3]',
+                               _aws_ec2_ami_source.results.0.description +
+                               (' [h3 to-encrypt]'
+                                if 'kms_key_alias' in aws_ec2_ami
+                                else ' [h3]'),
                              'image': _aws_ec2_ami_source.results.0.ami_id,
                              'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
                              'environment': 'ami',
@@ -80,4 +106,10 @@
                             })
                  ])
       }}
-  when: '_aws_ec2_ami_target.results == []'
+  when: >
+    (('kms_key_alias' in aws_ec2_ami) and
+     (_aws_ec2_ami_intermediate.results == []) and
+     (_aws_ec2_ami_target.results == []))
+    or
+    (('kms_key_alias' not in aws_ec2_ami) and
+     (_aws_ec2_ami_target.results == []))

@@ -14,8 +14,12 @@
     region: '{{ aws_region }}'
     source_region: '{{ aws_region }}'
     source_image_id: '{{ item.ami_id }}'
-    name: '{{ item["name"] + " [ENCRYPTED]" }}'
-    description: '{{ item.description + " [ENCRYPTED]" }}'
+    name: >-
+      {{ item.name
+         | regex_replace("\[h3 to-encrypt\]", "[h3 encrypted]") }}
+    description: >-
+      {{ item.description
+         | regex_replace("\[h3 to-encrypt\]", "[h3 encrypted]") }}
     encrypted: yes
     kms_key_id: '{{ item.tags["KMS Key Alias"] }}'
     wait: yes
