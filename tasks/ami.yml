@@ -28,7 +28,8 @@
     description: '{{ instance.description }}'
     name: '{{ instance.description }}'
     tags:
-      Encrypt With: '{{ instance.kms_key_id | default(omit) }}'
+      To Encrypt: '{{ ("True" if instance.kms_key_alias else "False") }}'
+      KMS Key Alias: '{{ instance.kms_key_alias | default(None) }}'
     wait: yes
   async: 7200
   poll: 0

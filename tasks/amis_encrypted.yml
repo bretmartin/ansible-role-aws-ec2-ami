@@ -5,7 +5,7 @@
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
     ami_tags:
-      Encrypt With: '*'
+      To Encrypt: True
   register: _aws_ec2_ami_to_encrypt
 
 - name: 'copy to encrypted AMI'
@@ -17,7 +17,7 @@
     name: '{{ item["name"] + " [ENCRYPTED]" }}'
     description: '{{ item.description + " [ENCRYPTED]" }}'
     encrypted: yes
-    kms_key_id: '{{ item.tags["Encrypt With"] }}'
+    kms_key_id: '{{ item.tags["KMS Key Alias"] }}'
     wait: yes
   async: 7200
   poll: 0

@@ -44,7 +44,9 @@
     hypervisor: >-
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
-      {{ aws_ec2_ami.source_ami_filters.name                | default(None) }}
+      {{ (_aws_ec2_ami_source.results.0.description + ' [h3]' +
+          (' [ENCRYPTED]' if 'kms_key_alias' in aws_ec2_ami else ''))
+                                                            | default(None) }}
     platform: >-
       {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
     sort: >-
@@ -72,7 +74,8 @@
                              'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
                              'environment': 'ami',
                              'function': 'ami-build-' + _aws_ec2_ami_shortname,
-                             'kms_key_id': aws_ec2_ami.kms_key_id | default(None),
+                             'kms_key_alias':
+                               aws_ec2_ami.kms_key_alias | default(None),
                              'platform': _aws_ec2_ami_source.results.0.platform,
                             })
                  ])
