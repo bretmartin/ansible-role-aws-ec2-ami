@@ -34,6 +34,10 @@
     instance: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
 
+- name: initialize AMI create job ID list
+  set_fact:
+    _aws_ec2_ami_job_ids: []
+
 - name: create unencrypted AMIs
   include: ami.yml
   vars:
