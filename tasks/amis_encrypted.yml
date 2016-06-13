@@ -24,6 +24,21 @@
   with_items: '{{ _aws_ec2_ami_to_encrypt.results }}'
   register: _aws_ec2_ami_copy
 
+- name: call optional notifier
+  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  vars:
+    message: >
+      began encrypting
+      AMI{% if _aws_ec2_ami_to_encrypt.results.__len__() != 1 %}s{% endif %}
+      {% for ami in _aws_ec2_ami_to_encrypt.results -%}
+      <a href="{{ _aws_ec2_ami_url }}:imageId={{ ami.ami_id }}">{{
+        ami.name }} ({{ ami.ami_id }})</a>
+      {%- if not loop.last %}, {% endif -%}
+      {% endfor %}
+  when: >
+    notifier_role is defined and
+    _aws_ec2_ami_to_encrypt.results
+
 - name: wait for AMI creation to complete
   async_status: jid={{ item.ansible_job_id }}
   register: _aws_ec2_ami_jobs
@@ -40,3 +55,17 @@
     state: absent
     delete_snapshot: True
   with_items: '{{ _aws_ec2_ami_to_encrypt.results }}'
+
+- name: call optional notifier
+  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  vars:
+    message: >
+      destroyed unencrypted
+      AMI{% if _aws_ec2_ami_to_encrypt.results.__len__() != 1 %}s{% endif %}
+      {% for ami in _aws_ec2_ami_to_encrypt.results -%}
+      {{ ami.name }} ({{ ami.ami_id }})
+      {%- if not loop.last %}, {% endif -%}
+      {% endfor %}
+  when: >
+    notifier_role is defined and
+    _aws_ec2_ami_to_encrypt.results

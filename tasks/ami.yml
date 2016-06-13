@@ -41,3 +41,9 @@
       {{ _aws_ec2_ami_job_ids
          | default([])
          | union([_aws_ec2_ami_create]) }}
+
+- name: call optional notifier
+  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  vars:
+    message: started creating AMI <b>{{ instance.description }}</b>
+  when: notifier_role is defined
