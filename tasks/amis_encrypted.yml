@@ -34,10 +34,12 @@
     message: >
       began encrypting
       AMI{% if _aws_ec2_ami_to_encrypt.results.__len__() != 1 %}s{% endif %}
+      <br/>
       {% for ami in _aws_ec2_ami_to_encrypt.results -%}
-      <a href="{{ _aws_ec2_ami_url }}:imageId={{ ami.ami_id }}">{{
-        ami.name }} ({{ ami.ami_id }})</a>
-      {%- if not loop.last %}, {% endif -%}
+      <b>{{ ami.name }}</b>
+      (<a href="{{ _aws_ec2_ami_url }}:imageId={{ ami.ami_id }}">{{
+        ami.ami_id }}</a>)
+      {%- if not loop.last %},<br/>{% endif -%}
       {% endfor %}
   when: >
     notifier_role is defined and
@@ -66,9 +68,10 @@
     message: >
       destroyed unencrypted
       AMI{% if _aws_ec2_ami_to_encrypt.results.__len__() != 1 %}s{% endif %}
+      <br/>
       {% for ami in _aws_ec2_ami_to_encrypt.results -%}
-      {{ ami.name }} ({{ ami.ami_id }})
-      {%- if not loop.last %}, {% endif -%}
+      <b>{{ ami.name }}</b> ({{ ami.ami_id }})
+      {%- if not loop.last %},<br/>{% endif -%}
       {% endfor %}
   when: >
     notifier_role is defined and
