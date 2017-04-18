@@ -10,7 +10,10 @@
 
 - name: set target AMI fact
   set_fact:
-    _aws_ec2_ami: '{{ aws_ec2_ami_ami.split(",") }}'
+    _aws_ec2_ami: >
+      {{ aws_ec2_ami_ami.split(",")
+         if aws_ec2_ami_ami is defined else [""]
+         | sort }}
 
 - name: set all configured AMIs fact
   set_fact:
