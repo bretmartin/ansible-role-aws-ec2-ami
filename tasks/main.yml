@@ -58,7 +58,7 @@
 - name: launch temporary instances
   include: roles/aws-ec2/tasks/instance.yml
   vars:
-    instance: '{{ item }}'
+    _aws_ec2_i: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
 
 - name: initialize AMI create job ID list
