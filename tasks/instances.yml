@@ -127,3 +127,13 @@
     or
     (('kms_key_alias' not in aws_ec2_ami) and
      (_aws_ec2_ami_target.results == []))
+
+- name: add AMI to to-be-encrypted list (if applicable, if target doesn't exist)
+  set_fact:
+    _aws_ec2_ami_amis_to_encrypt: >-
+      {{ _aws_ec2_ami_amis_to_encrypt
+         | default([])
+         | union([_aws_ec2_ami_shortname]) }}
+  when: >
+    ('kms_key_alias' in aws_ec2_ami) and
+    (_aws_ec2_ami_target.results == [])

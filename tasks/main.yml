@@ -40,9 +40,10 @@
     _aws_ec2_ami: '{{ _aws_ec2_ami_all }}'
   when: '_aws_ec2_ami == [""]'
 
-- name: initialize instance list
+- name: initialize lists of instances and AMIs to encrypt
   set_fact:
     _aws_ec2_ami_instances: []
+    _aws_ec2_ami_amis_to_encrypt: []
 
 - name: find source AMIs and determine what temporary instances are required
   include: instances.yml

@@ -1,12 +1,24 @@
 ---
 
-- name: find AMIs that should be encrypted
+- name: find AMIs to be encrypted, waiting for expected number to be available
   ec2_ami_find:
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
     ami_tags:
       To Encrypt: "True"
-  register: _aws_ec2_ami_to_encrypt
+    state: available
+  register: _aws_ec2_ami_amis_to_encrypt_available
+  until: >
+    ( _aws_ec2_ami_amis_to_encrypt_available.results | length )
+    ==
+    ( _aws_ec2_ami_amis_to_encrypt | length )
+  retries: 40
+  delay: 15
+
+- name: 
+  set_fact:
+    _aws_ec2_ami_intermediate_amis: >
+      {{ _aws_ec2_ami_amis_to_encrypt_available.results }}
 
 - name: 'copy to encrypted AMI'
   ec2_ami_copy:
@@ -28,7 +40,7 @@
     wait: yes
   async: 7200
   poll: 0
-  with_items: '{{ _aws_ec2_ami_to_encrypt.results }}'
+  with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
   register: _aws_ec2_ami_copy
 
 - name: call optional notifier
@@ -36,9 +48,9 @@
   vars:
     message: >
       began encrypting
-      AMI{% if _aws_ec2_ami_to_encrypt.results.__len__() != 1 %}s{% endif %}
+      AMI{% if _aws_ec2_ami_intermediate_amis.__len__() != 1 %}s{% endif %}
       <br/>
-      {% for ami in _aws_ec2_ami_to_encrypt.results -%}
+      {% for ami in _aws_ec2_ami_intermediate_amis -%}
       <b>{{ ami.name }}</b>
       (<a href="{{ _aws_ec2_ami_url }}:imageId={{ ami.ami_id }}">{{
         ami.ami_id }}</a>)
@@ -46,7 +58,7 @@
       {% endfor %}
   when: >
     notifier_role is defined and
-    _aws_ec2_ami_to_encrypt.results
+    _aws_ec2_ami_intermediate_amis
 
 - name: wait for AMI encryption to complete
   async_status: jid={{ item.ansible_job_id }}
@@ -63,19 +75,19 @@
     image_id: '{{ item.ami_id }}'
     state: absent
     delete_snapshot: True
-  with_items: '{{ _aws_ec2_ami_to_encrypt.results }}'
+  with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
 
 - name: call optional notifier
   include: 'roles/{{ notifier_role }}/tasks/main.yml'
   vars:
     message: >
       destroyed unencrypted
-      AMI{% if _aws_ec2_ami_to_encrypt.results.__len__() != 1 %}s{% endif %}
+      AMI{% if _aws_ec2_ami_intermediate_amis.__len__() != 1 %}s{% endif %}
       <br/>
-      {% for ami in _aws_ec2_ami_to_encrypt.results -%}
+      {% for ami in _aws_ec2_ami_intermediate_amis -%}
       <b>{{ ami.name }}</b> ({{ ami.ami_id }})
       {%- if not loop.last %},<br/>{% endif -%}
       {% endfor %}
   when: >
     notifier_role is defined and
-    _aws_ec2_ami_to_encrypt.results
+    _aws_ec2_ami_intermediate_amis
