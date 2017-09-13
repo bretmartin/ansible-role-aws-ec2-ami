@@ -29,6 +29,7 @@
     description: '{{ instance.ami_description }}'
     name: '{{ instance.ami_name }}'
     tags:
+      Short Name: '{{ instance.ami_shortname }}'
       Source AMI ID: '{{ instance.image }}'
       To Encrypt: '{{ ("True" if instance.ami_kms_key_alias else "False") }}'
       KMS Key Alias: '{{ instance.ami_kms_key_alias | default(None) }}'
