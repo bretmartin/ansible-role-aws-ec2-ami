@@ -32,15 +32,12 @@
       Source AMI ID: '{{ instance.image }}'
       To Encrypt: '{{ ("True" if instance.ami_kms_key_alias else "False") }}'
       KMS Key Alias: '{{ instance.ami_kms_key_alias | default(None) }}'
-    wait: yes
-  async: 7200
-  poll: 0
   register: _aws_ec2_ami_create
 
-- name: save AMI creation job ID
+- name: save unencrypted AMI creation data
   set_fact:
-    _aws_ec2_ami_job_ids: >-
-      {{ _aws_ec2_ami_job_ids
+    _aws_ec2_ami_unencrypted_amis: >-
+      {{ _aws_ec2_ami_unencrypted_amis
          | default([])
          | union([_aws_ec2_ami_create]) }}
 
