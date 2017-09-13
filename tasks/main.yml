@@ -22,6 +22,8 @@
          | default([])
          | union([item | basename | splitext | first]) }}
   with_fileglob: 'host_vars/{{ inventory_hostname }}/ec2-ami/*.yml'
+  loop_control:
+    label: '{{ item | basename | splitext | first }}'
 
 - name: call optional notifier
   include: 'roles/{{ notifier_role }}/tasks/main.yml'
@@ -83,6 +85,11 @@
   retries: 120
   delay: 15
   with_items: '{{ _aws_ec2_ami_unencrypted_amis }}'
+  loop_control:
+    label: >-
+      {{ _aws_ec2_ami_unencrypted_amis_available
+         .results[0]
+         .tags["Short Name"] }}
 
 - name: terminate temporary instances
   include: instances_terminate.yml

@@ -39,6 +39,8 @@
       To Encrypt: "False"
   with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
   register: _aws_ec2_ami_copy
+  loop_control:
+    label: '{{ item.tags["Short Name"] }}'
 
 - name: call optional notifier
   include: 'roles/{{ notifier_role }}/tasks/main.yml'
@@ -67,6 +69,8 @@
   retries: 120
   delay: 15
   with_items: '{{ _aws_ec2_ami_copy.results }}'
+  loop_control:
+    label: '{{ _aws_ec2_ami_encrypted_amis.item.item.tags["Short Name"] }}'
 
 - name: destroy unencrypted versions of encrypted AMIs
   ec2_ami:
@@ -76,6 +80,8 @@
     state: absent
     delete_snapshot: True
   with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
+  loop_control:
+    label: '{{ item.tags["Short Name"] }}'
 
 - name: call optional notifier
   include: 'roles/{{ notifier_role }}/tasks/main.yml'
