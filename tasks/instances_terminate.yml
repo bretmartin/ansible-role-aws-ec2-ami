@@ -4,7 +4,7 @@
     gather facts about temporary instance for '{{ instance.ami_shortname }}' AMI
   ec2_remote_facts:
     filters:
-      instance-state-name: ['running']
+      instance-state-name: ['stopped']
       'tag:Name':        '{{ instance.hostname }}'
       'tag:Environment': 'ami'
       'tag:Function':    '{{ instance.function }}'

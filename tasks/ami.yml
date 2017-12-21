@@ -1,24 +1,25 @@
 ---
 
-- name: >-
-    gather facts about temporary instance for '{{ instance.ami_shortname }}' AMI
+- name: wait for stopped instance for '{{ instance.ami_shortname }}' AMI
   ec2_remote_facts:
     filters:
-      instance-state-name: ['running']
+      instance-state-name: ['stopped']
       'tag:Name':        '{{ instance.hostname }}'
       'tag:Environment': 'ami'
       'tag:Function':    '{{ instance.function }}'
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_instance_facts
+  until: _aws_ec2_ami_instance_facts.instances | length == 1
+  retries: 120
+  delay: 15
 
-- name: wait for RDP or SSH accessibility
-  wait_for:
-    port: '{{ ("3389"
-               if instance.ami_platform == "windows"
-               else "22") }}'
-    host: '{{ _aws_ec2_ami_instance_facts.instances.0.private_ip_address }}'
-    timeout: 600
+- name: call optional notifier
+  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  vars:
+    message: >
+      found stopped temporary instance for AMI <b>{{ instance.ami_shortname }}</b>
+  when: notifier_role is defined
 
 - name: create AMI
   ec2_ami:
