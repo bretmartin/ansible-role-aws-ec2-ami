@@ -26,7 +26,7 @@
     label: '{{ item | basename | splitext | first }}'
 
 - name: call optional notifier
-  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
   vars:
     message: >
       started running role <b>aws-ec2-ami</b>
@@ -48,7 +48,7 @@
     _aws_ec2_ami_amis_to_encrypt: []
 
 - name: find source AMIs and determine what temporary instances are required
-  include: instances.yml
+  include_tasks: instances.yml
   vars:
     _aws_ec2_ami_file: >-
       host_vars/{{ inventory_hostname }}/ec2-ami/{{ ami }}.yml
@@ -56,10 +56,14 @@
   loop_control:
     loop_var: ami
 
-- include: roles/aws-vpc/tasks/vpc_id.yml
+- include_role:
+    name: aws-vpc
+    tasks_from: vpc_id
 
 - name: launch temporary instances
-  include: roles/aws-ec2/tasks/instance.yml
+  include_role:
+    name: aws-ec2
+    tasks_from: instance
   vars:
     _aws_ec2_i: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
@@ -69,7 +73,7 @@
     _aws_ec2_ami_unencrypted_amis: []
 
 - name: create unencrypted AMIs
-  include: ami.yml
+  include_tasks: ami.yml
   vars:
     instance: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
@@ -96,16 +100,16 @@
          .tags["Short Name"] }}
 
 - name: terminate temporary instances
-  include: instances_terminate.yml
+  include_tasks: instances_terminate.yml
   vars:
     instance: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
 
 - name: create encrypted AMIs
-  include: amis_encrypted.yml
+  include_tasks: amis_encrypted.yml
 
 - name: call optional notifier
-  include: 'roles/{{ notifier_role }}/tasks/main.yml'
+  include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
   vars:
     message: >
       finished running role <b>aws-ec2-ami</b>
