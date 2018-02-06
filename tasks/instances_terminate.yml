@@ -2,7 +2,7 @@
 
 - name: >-
     gather facts about temporary instance for '{{ instance.ami_shortname }}' AMI
-  ec2_remote_facts:
+  ec2_instance_facts:
     profile:        '{{ aws_profile }}'
     aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
     aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
@@ -25,7 +25,7 @@
 
     state: absent
     region: '{{ aws_region }}'
-    instance_ids: '{{ _aws_ec2_ami_instance_facts.instances.0.id }}'
+    instance_ids: '{{ _aws_ec2_ami_instance_facts.instances.0.instance_id }}'
 
 - name: call optional notifier
   include: 'roles/{{ notifier_role }}/tasks/main.yml'

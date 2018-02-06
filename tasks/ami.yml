@@ -1,7 +1,7 @@
 ---
 
 - name: wait for stopped instance for '{{ instance.ami_shortname }}' AMI
-  ec2_remote_facts:
+  ec2_instance_facts:
     profile:        '{{ aws_profile }}'
     aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
     aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
@@ -27,12 +27,12 @@
 
 - name: create AMI
   ec2_ami:
-    instance_id: '{{ _aws_ec2_ami_instance_facts.instances.0.id }}'
     profile:        '{{ aws_profile }}'
     aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
     aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
     security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
 
+    instance_id: '{{ _aws_ec2_ami_instance_facts.instances.0.instance_id }}'
     region: '{{ aws_region }}'
     state: present
     description: '{{ instance.ami_description }}'
