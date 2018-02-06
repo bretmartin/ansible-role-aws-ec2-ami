@@ -10,7 +10,11 @@
 
 - name: find source AMI
   ec2_ami_find:
-    profile: '{{ aws_profile }}'
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
     region: '{{ aws_region }}'
     architecture: >-
       {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
@@ -36,8 +40,12 @@
 
 - name: find intermediate AMI (if applicable, if it already exists)
   ec2_ami_find:
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
     owner: '{{ aws_account }}'
-    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
     ami_tags:
       Source AMI ID: '{{ _aws_ec2_ami_source.results.0.ami_id }}'
@@ -62,8 +70,12 @@
 
 - name: find target AMI (if it already exists)
   ec2_ami_find:
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
     owner: '{{ aws_account }}'
-    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
     ami_tags:
       Source AMI ID: '{{ _aws_ec2_ami_source.results.0.ami_id }}'

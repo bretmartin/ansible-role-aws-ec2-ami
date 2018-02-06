@@ -2,7 +2,11 @@
 
 - name: find AMIs to be encrypted, waiting for expected number to be available
   ec2_ami_find:
-    profile: '{{ aws_profile }}'
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
     region: '{{ aws_region }}'
     ami_tags:
       To Encrypt: "True"
@@ -23,6 +27,8 @@
 - name: 'copy to encrypted AMI'
   ec2_ami_copy:
     profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
+
     region: '{{ aws_region }}'
     source_region: '{{ aws_region }}'
     source_image_id: '{{ item.ami_id }}'
@@ -61,7 +67,11 @@
 
 - name: find encrypted AMIs, waiting for expected ones to be available
   ec2_ami_find:
-    profile: '{{ aws_profile }}'
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
     region: '{{ aws_region }}'
     ami_id: '{{ item.image_id }}'
   register: _aws_ec2_ami_encrypted_amis
@@ -74,7 +84,11 @@
 
 - name: destroy unencrypted versions of encrypted AMIs
   ec2_ami:
-    profile: '{{ aws_profile }}'
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
     region: '{{ aws_region }}'
     image_id: '{{ item.ami_id }}'
     state: absent
