@@ -54,8 +54,14 @@
     hypervisor: >-
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
-      {{ (_aws_ec2_ami_source.results.0.name + ' [h3 to-encrypt]')
-                                                            | default(None) }}
+      {{
+        _aws_ec2_ami_source.results.0.name +
+        ' [' +
+        aws_ec2_ami_organization_shortname +
+        ' ' +
+        _aws_ec2_ami_shortname +
+        ' to-encrypt]'
+      }}
     platform: >-
       {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
     sort: >-
@@ -84,9 +90,14 @@
     hypervisor: >-
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
-      {{ (_aws_ec2_ami_source.results.0.name +
-          (' [h3 encrypted]' if 'kms_key_alias' in aws_ec2_ami else ' [h3]'))
-                                                            | default(None) }}
+      {{
+        _aws_ec2_ami_source.results.0.name +
+        ' [' +
+        aws_ec2_ami_organization_shortname +
+        ' ' +
+        _aws_ec2_ami_shortname +
+        (' encrypted]' if 'kms_key_alias' in aws_ec2_ami else ']')
+      }}
     platform: >-
       {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
     sort: >-
@@ -109,14 +120,20 @@
                   | combine({
                              'ami_description':
                                _aws_ec2_ami_source.results.0.description +
-                               (' [h3 to-encrypt]'
+                               ' [' +
+                               aws_ec2_ami_organization_shortname +
+                               (' to-encrypt]'
                                 if 'kms_key_alias' in aws_ec2_ami
-                                else ' [h3]'),
+                                else ']'),
                              'ami_name':
                                _aws_ec2_ami_source.results.0.name +
-                               (' [h3 to-encrypt]'
+                               ' [' +
+                               aws_ec2_ami_organization_shortname +
+                               ' ' +
+                               _aws_ec2_ami_shortname +
+                               (' to-encrypt]'
                                 if 'kms_key_alias' in aws_ec2_ami
-                                else ' [h3]'),
+                                else ']'),
                              'description':
                                _aws_ec2_ami_shortname +
                                ' AMI build',
@@ -124,7 +141,6 @@
                              'image': _aws_ec2_ami_source.results.0.ami_id,
                              'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
                              'environment': 'ami',
-                             'function': 'ami-build-' + _aws_ec2_ami_shortname,
                              'ami_kms_key_alias':
                                aws_ec2_ami.kms_key_alias | default(None),
                              'ami_platform':

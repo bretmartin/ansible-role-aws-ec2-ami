@@ -33,11 +33,21 @@
     source_region: '{{ aws_region }}'
     source_image_id: '{{ item.ami_id }}'
     name: >-
-      {{ item.name
-         | regex_replace("\[h3 to-encrypt\]", "[h3 encrypted]") }}
+      {{
+        item.name
+        | regex_replace(
+            "\[" + aws_ec2_ami_organization_shortname + " (.+) to-encrypt\]",
+             "[" + aws_ec2_ami_organization_shortname + " \1 encrypted]"
+          )
+      }}
     description: >-
-      {{ item.description
-         | regex_replace("\[h3 to-encrypt\]", "[h3 encrypted]") }}
+      {{
+        item.description
+        | regex_replace(
+            "\[" + aws_ec2_ami_organization_shortname + " (.+) to-encrypt\]",
+             "[" + aws_ec2_ami_organization_shortname + " \1 encrypted]"
+          )
+      }}
     encrypted: yes
     kms_key_id: '{{ item.tags["KMS Key Alias"] }}'
     tags:
