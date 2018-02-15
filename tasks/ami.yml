@@ -42,6 +42,8 @@
       Source AMI ID: '{{ instance.image }}'
       To Encrypt: '{{ ("True" if instance.ami_kms_key_alias else "False") }}'
       KMS Key Alias: '{{ instance.ami_kms_key_alias | default(None) }}'
+    wait: True
+    wait_timeout: 3600
   register: _aws_ec2_ami_create
 
 - name: save unencrypted AMI creation data
