@@ -1,6 +1,22 @@
 ---
 
-- name: find AMIs to be encrypted, waiting for expected number to be available
+- name: wait for none of the AMIs to be encrypted to be "pending"
+  ec2_ami_find:
+    profile:        '{{ aws_profile }}'
+    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
+    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
+    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+
+    region: '{{ aws_region }}'
+    ami_tags:
+      To Encrypt: "True"
+    state: pending
+  register: _aws_ec2_ami_amis_to_encrypt_pending
+  until: _aws_ec2_ami_amis_to_encrypt_pending.results | length == 0
+  retries: 40
+  delay: 15
+
+- name: find intermediate AMIs awaiting encryption
   ec2_ami_find:
     profile:        '{{ aws_profile }}'
     aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
@@ -12,14 +28,8 @@
       To Encrypt: "True"
     state: available
   register: _aws_ec2_ami_amis_to_encrypt_available
-  until: >
-    ( _aws_ec2_ami_amis_to_encrypt_available.results | length )
-    ==
-    ( _aws_ec2_ami_amis_to_encrypt | length )
-  retries: 40
-  delay: 15
 
-- name: 
+- name: set intermediate AMIs fact
   set_fact:
     _aws_ec2_ami_intermediate_amis: >
       {{ _aws_ec2_ami_amis_to_encrypt_available.results }}
