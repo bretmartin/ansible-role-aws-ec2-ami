@@ -55,7 +55,9 @@
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
       {{
-        _aws_ec2_ami_source.results.0.name +
+        _aws_ec2_ami_source.results.0
+          [aws_ec2_ami.source_ami_field_for_name_prefix
+           | default('name')] +
         ' [' +
         aws_ec2_ami_organization_shortname +
         ' ' +
@@ -91,7 +93,9 @@
       {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
     name: >-
       {{
-        _aws_ec2_ami_source.results.0.name +
+        _aws_ec2_ami_source.results.0
+          [aws_ec2_ami.source_ami_field_for_name_prefix
+           | default('name')] +
         ' [' +
         aws_ec2_ami_organization_shortname +
         ' ' +
@@ -126,7 +130,9 @@
                                 if 'kms_key_alias' in aws_ec2_ami
                                 else ']'),
                              'ami_name':
-                               _aws_ec2_ami_source.results.0.name +
+                               _aws_ec2_ami_source.results.0
+                                 [aws_ec2_ami.source_ami_field_for_name_prefix
+                                  | default('name')] +
                                ' [' +
                                aws_ec2_ami_organization_shortname +
                                ' ' +
