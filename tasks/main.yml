@@ -79,25 +79,21 @@
   with_items: '{{ _aws_ec2_ami_instances }}'
 
 - name: find unencrypted AMIs, waiting for them to be available
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
-
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
+    filters:
+      state: available
+    image_id: '{{ _aws_ec2_ami_unencrypted_ami.image_id }}'
     region: '{{ aws_region }}'
-    ami_id: '{{ item.image_id }}'
-    state: available
   register: _aws_ec2_ami_unencrypted_amis_available
-  until: _aws_ec2_ami_unencrypted_amis_available.results | length == 1
+  until: _aws_ec2_ami_unencrypted_amis_available.images | length == 1
   retries: 720
   delay: 15
   with_items: '{{ _aws_ec2_ami_unencrypted_amis }}'
   loop_control:
-    label: >-
-      {{ _aws_ec2_ami_unencrypted_amis_available
-         .results[0]
-         .tags["Short Name"] }}
+    label: '{{ _aws_ec2_ami_unencrypted_ami.tags["Short Name"] }}'
+    loop_var: _aws_ec2_ami_unencrypted_ami
 
 - name: refresh assumed role credentials
   include_role:

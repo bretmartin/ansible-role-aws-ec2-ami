@@ -1,18 +1,15 @@
 ---
 
 - name: wait for none of the AMIs to be encrypted to be "pending"
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
-
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
+    filters:
+      state: pending
+      'tag:To Encrypt': 'True'
     region: '{{ aws_region }}'
-    ami_tags:
-      To Encrypt: "True"
-    state: pending
   register: _aws_ec2_ami_amis_to_encrypt_pending
-  until: _aws_ec2_ami_amis_to_encrypt_pending.results | length == 0
+  until: _aws_ec2_ami_amis_to_encrypt_pending.images | length == 0
   retries: 720
   delay: 15
 
@@ -21,22 +18,19 @@
     name: aws-iam-assume-role
 
 - name: find intermediate AMIs awaiting encryption
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
-
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
+    filters:
+      state: available
+      'tag:To Encrypt': 'True'
     region: '{{ aws_region }}'
-    ami_tags:
-      To Encrypt: "True"
-    state: available
   register: _aws_ec2_ami_amis_to_encrypt_available
 
 - name: set intermediate AMIs fact
   set_fact:
     _aws_ec2_ami_intermediate_amis: >
-      {{ _aws_ec2_ami_amis_to_encrypt_available.results }}
+      {{ _aws_ec2_ami_amis_to_encrypt_available.images }}
 
 - name: 'copy to encrypted AMI'
   ec2_ami_copy:
@@ -45,7 +39,7 @@
 
     region: '{{ aws_region }}'
     source_region: '{{ aws_region }}'
-    source_image_id: '{{ item.ami_id }}'
+    source_image_id: '{{ item.image_id }}'
     name: >-
       {{
         item.name
@@ -81,8 +75,8 @@
       <br/>
       {% for ami in _aws_ec2_ami_intermediate_amis -%}
       <b>{{ ami.name }}</b>
-      (<a href="{{ _aws_ec2_ami_url }}:imageId={{ ami.ami_id }}">{{
-        ami.ami_id }}</a>)
+      (<a href="{{ _aws_ec2_ami_url }}:imageId={{ ami.image_id }}">{{
+        ami.image_id }}</a>)
       {%- if not loop.last %},<br/>{% endif -%}
       {% endfor %}
   when: >
@@ -90,16 +84,15 @@
     _aws_ec2_ami_intermediate_amis
 
 - name: find encrypted AMIs, waiting for expected ones to be available
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
-
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
+    filters:
+      state: available
+    image_id: '{{ item.image_id }}'
     region: '{{ aws_region }}'
-    ami_id: '{{ item.image_id }}'
   register: _aws_ec2_ami_encrypted_amis
-  until: _aws_ec2_ami_encrypted_amis.results | length == 1
+  until: _aws_ec2_ami_encrypted_amis.images | length == 1
   retries: 720
   delay: 15
   with_items: '{{ _aws_ec2_ami_copy.results }}'
@@ -114,7 +107,7 @@
     security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
 
     region: '{{ aws_region }}'
-    image_id: '{{ item.ami_id }}'
+    image_id: '{{ item.image_id }}'
     state: absent
     delete_snapshot: True
   with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
@@ -129,7 +122,7 @@
       AMI{% if _aws_ec2_ami_intermediate_amis.__len__() != 1 %}s{% endif %}
       <br/>
       {% for ami in _aws_ec2_ami_intermediate_amis -%}
-      <b>{{ ami.name }}</b> ({{ ami.ami_id }})
+      <b>{{ ami.name }}</b> ({{ ami.image_id }})
       {%- if not loop.last %},<br/>{% endif -%}
       {% endfor %}
   when: >

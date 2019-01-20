@@ -9,158 +9,152 @@
   include_vars: '{{ _aws_ec2_ami_file }}'
 
 - name: find source AMI
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
+
+    filters: '{{ aws_ec2_ami.source_ami_filters }}'
+    owner:   '{{ aws_ec2_ami.source_ami_owner | default(omit) }}'
 
     region: '{{ aws_region }}'
-    architecture: >-
-      {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
-    hypervisor: >-
-      {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
-    is_public: >-
-      {{ aws_ec2_ami.source_ami_filters.is_public           | default(None) }}
-    name: >-
-      {{ aws_ec2_ami.source_ami_filters.name                | default(None) }}
-    owner: >-
-      {{ aws_ec2_ami.source_ami_filters.owner               | default(None) }}
-    platform: >-
-      {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
-    sort: >-
-      {{ aws_ec2_ami.source_ami_filters.sort                | default(None) }}
-    sort_order: >-
-      {{ aws_ec2_ami.source_ami_filters.sort_order          | default(None) }}
-    state: >-
-      {{ aws_ec2_ami.source_ami_filters.state               | default(None) }}
-    virtualization_type: >-
-      {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
-  register: _aws_ec2_ami_source
+  register: _aws_ec2_ami_facts_source
+
+- name: set source AMI fact
+  set_fact:
+    _aws_ec2_ami_source: >-
+      {{
+        _aws_ec2_ami_facts_source.images
+        | sort(attribute=(aws_ec2_ami.source_ami_sort_attribute
+                          | default("creation_date")),
+                 reverse=(aws_ec2_ami.source_ami_sort_reverse
+                          | default(True)))
+        | first
+      }}
+
+- name: set intermediate AMI filters fact
+  set_fact:
+    _aws_ec2_ami_intermediate_ami_filters: >-
+      {{
+        aws_ec2_ami.source_ami_filters
+        | combine({"name": _aws_ec2_ami_source
+                           [aws_ec2_ami.source_ami_field_for_name_prefix
+                            | default('name')] +
+                           ' [' +
+                           aws_ec2_ami_organization_shortname +
+                           ' ' +
+                           _aws_ec2_ami_shortname +
+                           ' to-encrypt]'})
+        | combine({"tag:Source AMI ID": _aws_ec2_ami_source.image_id})
+      }}
 
 - name: find intermediate AMI (if applicable, if it already exists)
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
 
-    owner: '{{ aws_account }}'
+    filters: '{{ _aws_ec2_ami_intermediate_ami_filters }}'
+    owner:   '{{ aws_account }}'
+
     region: '{{ aws_region }}'
-    ami_tags:
-      Source AMI ID: '{{ _aws_ec2_ami_source.results.0.ami_id }}'
-    architecture: >-
-      {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
-    hypervisor: >-
-      {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
-    name: >-
+  register: _aws_ec2_ami_facts_intermediate
+
+- name: set intermediate AMI fact
+  set_fact:
+    _aws_ec2_ami_intermediate: >-
       {{
-        _aws_ec2_ami_source.results.0
-          [aws_ec2_ami.source_ami_field_for_name_prefix
-           | default('name')] +
-        ' [' +
-        aws_ec2_ami_organization_shortname +
-        ' ' +
-        _aws_ec2_ami_shortname +
-        ' to-encrypt]'
+        _aws_ec2_ami_facts_intermediate.images
+        | sort(attribute="creation_date", reverse=True)
+        | first
       }}
-    platform: >-
-      {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
-    sort: >-
-      {{ aws_ec2_ami.source_ami_filters.sort                | default(None) }}
-    sort_order: >-
-      {{ aws_ec2_ami.source_ami_filters.sort_order          | default(None) }}
-    state: >-
-      {{ aws_ec2_ami.source_ami_filters.state               | default(None) }}
-    virtualization_type: >-
-      {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
-  register: _aws_ec2_ami_intermediate
+  when: _aws_ec2_ami_facts_intermediate.images != []
+
+- name: set target AMI filters fact
+  set_fact:
+    _aws_ec2_ami_target_ami_filters: >-
+      {{
+        aws_ec2_ami.source_ami_filters
+        | combine({"name": _aws_ec2_ami_source
+                           [aws_ec2_ami.source_ami_field_for_name_prefix
+                            | default('name')] +
+                           ' [' +
+                           aws_ec2_ami_organization_shortname +
+                           ' ' +
+                           _aws_ec2_ami_shortname +
+                           (' encrypted]'
+                            if 'kms_key_alias' in aws_ec2_ami else ']')})
+        | combine({"tag:Source AMI ID": _aws_ec2_ami_source.image_id})
+      }}
 
 - name: find target AMI (if it already exists)
-  ec2_ami_find:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
+  ec2_ami_facts:
+    profile: '{{ aws_profile }}'
+    # this Ansible module supports automatic role assumption
 
-    owner: '{{ aws_account }}'
+    filters: '{{ _aws_ec2_ami_target_ami_filters }}'
+    owner:   '{{ aws_account }}'
+
     region: '{{ aws_region }}'
-    ami_tags:
-      Source AMI ID: '{{ _aws_ec2_ami_source.results.0.ami_id }}'
-    architecture: >-
-      {{ aws_ec2_ami.source_ami_filters.architecture        | default(None) }}
-    hypervisor: >-
-      {{ aws_ec2_ami.source_ami_filters.hypervisor          | default(None) }}
-    name: >-
+  register: _aws_ec2_ami_facts_target
+
+- name: set target AMI fact
+  set_fact:
+    _aws_ec2_ami_target: >-
       {{
-        _aws_ec2_ami_source.results.0
-          [aws_ec2_ami.source_ami_field_for_name_prefix
-           | default('name')] +
-        ' [' +
-        aws_ec2_ami_organization_shortname +
-        ' ' +
-        _aws_ec2_ami_shortname +
-        (' encrypted]' if 'kms_key_alias' in aws_ec2_ami else ']')
+        _aws_ec2_ami_facts_target.images
+        | sort(attribute="creation_date", reverse=True)
+        | first
       }}
-    platform: >-
-      {{ aws_ec2_ami.source_ami_filters.platform            | default(None) }}
-    sort: >-
-      {{ aws_ec2_ami.source_ami_filters.sort                | default(None) }}
-    sort_order: >-
-      {{ aws_ec2_ami.source_ami_filters.sort_order          | default(None) }}
-    state: >-
-      {{ aws_ec2_ami.source_ami_filters.state               | default(None) }}
-    virtualization_type: >-
-      {{ aws_ec2_ami.source_ami_filters.virtualization_type | default(None) }}
-  register: _aws_ec2_ami_target
+  when: _aws_ec2_ami_facts_target.images != []
 
 - name: add instance to those to be configured if target doesn't exist
   set_fact:
     _aws_ec2_ami_instances: >-
-      {{ _aws_ec2_ami_instances
-         | default([])
-         | union([
-                  aws_ec2_ami.build_instance
-                  | combine({
-                             'ami_description':
-                               _aws_ec2_ami_source.results.0.description +
-                               ' [' +
-                               aws_ec2_ami_organization_shortname +
-                               (' to-encrypt]'
-                                if 'kms_key_alias' in aws_ec2_ami
-                                else ']'),
-                             'ami_name':
-                               _aws_ec2_ami_source.results.0
-                                 [aws_ec2_ami.source_ami_field_for_name_prefix
-                                  | default('name')] +
-                               ' [' +
-                               aws_ec2_ami_organization_shortname +
-                               ' ' +
-                               _aws_ec2_ami_shortname +
-                               (' to-encrypt]'
-                                if 'kms_key_alias' in aws_ec2_ami
-                                else ']'),
-                             'description':
-                               _aws_ec2_ami_shortname +
-                               ' AMI build',
-                             'ami_shortname': _aws_ec2_ami_shortname,
-                             'image': _aws_ec2_ami_source.results.0.ami_id,
-                             'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
-                             'environment': 'ami',
-                             'ami_kms_key_alias':
-                               aws_ec2_ami.kms_key_alias | default(None),
-                             'ami_platform':
-                               _aws_ec2_ami_source.results.0.platform,
-                            })
-                 ])
+      {{
+        (_aws_ec2_ami_instances | default([])) +
+        [(aws_ec2_instance_defaults
+          | combine(aws_ec2_ami.build_instance)
+          | combine({
+                     'ami_description':
+                       _aws_ec2_ami_source.description +
+                       ' [' +
+                       aws_ec2_ami_organization_shortname +
+                       ' ' +
+                       _aws_ec2_ami_shortname +
+                       (' to-encrypt]'
+                        if 'kms_key_alias' in aws_ec2_ami
+                        else ']'),
+                     'ami_name':
+                       _aws_ec2_ami_source
+                         [aws_ec2_ami.source_ami_field_for_name_prefix
+                          | default('name')] +
+                       ' [' +
+                       aws_ec2_ami_organization_shortname +
+                       ' ' +
+                       _aws_ec2_ami_shortname +
+                       (' to-encrypt]'
+                        if 'kms_key_alias' in aws_ec2_ami
+                        else ']'),
+                     'description':
+                       _aws_ec2_ami_shortname +
+                       ' AMI build',
+                     'ami_shortname': _aws_ec2_ami_shortname,
+                     'image': _aws_ec2_ami_source.image_id,
+                     'hostname': 'ami-build-' + _aws_ec2_ami_shortname,
+                     'environment': 'ami',
+                     'ami_kms_key_alias':
+                       aws_ec2_ami.kms_key_alias | default(None),
+                     'ami_platform':
+                       (_aws_ec2_ami_source.platform | default("linux"))
+                    })
+        )]
       }}
   when: >
     (('kms_key_alias' in aws_ec2_ami) and
-     (_aws_ec2_ami_intermediate.results == []) and
-     (_aws_ec2_ami_target.results == []))
+     (_aws_ec2_ami_intermediate is not defined) and
+     (_aws_ec2_ami_target is not defined))
     or
     (('kms_key_alias' not in aws_ec2_ami) and
-     (_aws_ec2_ami_target.results == []))
+     (_aws_ec2_ami_target is not defined))
 
 - name: add AMI to to-be-encrypted list (if applicable, if target doesn't exist)
   set_fact:
@@ -170,4 +164,4 @@
          | union([_aws_ec2_ami_shortname]) }}
   when: >
     ('kms_key_alias' in aws_ec2_ami) and
-    (_aws_ec2_ami_target.results == [])
+    (_aws_ec2_ami_target is not defined)
