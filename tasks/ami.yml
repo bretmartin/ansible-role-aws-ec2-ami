@@ -25,6 +25,10 @@
       found stopped temporary instance for AMI <b>{{ instance.ami_shortname }}</b>
   when: notifier_role is defined
 
+- name: refresh assumed role credentials
+  include_role:
+    name: aws-iam-assume-role
+
 - name: create AMI
   ec2_ami:
     profile:        '{{ aws_profile }}'

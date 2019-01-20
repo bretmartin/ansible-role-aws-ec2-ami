@@ -16,6 +16,10 @@
   retries: 720
   delay: 15
 
+- name: refresh assumed role credentials
+  include_role:
+    name: aws-iam-assume-role
+
 - name: find intermediate AMIs awaiting encryption
   ec2_ami_find:
     profile:        '{{ aws_profile }}'

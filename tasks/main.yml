@@ -99,6 +99,10 @@
          .results[0]
          .tags["Short Name"] }}
 
+- name: refresh assumed role credentials
+  include_role:
+    name: aws-iam-assume-role
+
 - name: terminate temporary instances
   include_tasks: instances_terminate.yml
   vars:
