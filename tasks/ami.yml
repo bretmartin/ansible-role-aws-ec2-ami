@@ -15,7 +15,7 @@
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_instance_facts
   until: _aws_ec2_ami_instance_facts.instances | length == 1
-  retries: 120
+  retries: 720
   delay: 15
 
 - name: call optional notifier

@@ -90,7 +90,7 @@
     state: available
   register: _aws_ec2_ami_unencrypted_amis_available
   until: _aws_ec2_ami_unencrypted_amis_available.results | length == 1
-  retries: 120
+  retries: 720
   delay: 15
   with_items: '{{ _aws_ec2_ami_unencrypted_amis }}'
   loop_control:

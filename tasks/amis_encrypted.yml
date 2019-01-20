@@ -13,7 +13,7 @@
     state: pending
   register: _aws_ec2_ami_amis_to_encrypt_pending
   until: _aws_ec2_ami_amis_to_encrypt_pending.results | length == 0
-  retries: 40
+  retries: 720
   delay: 15
 
 - name: find intermediate AMIs awaiting encryption
@@ -96,7 +96,7 @@
     ami_id: '{{ item.image_id }}'
   register: _aws_ec2_ami_encrypted_amis
   until: _aws_ec2_ami_encrypted_amis.results | length == 1
-  retries: 120
+  retries: 720
   delay: 15
   with_items: '{{ _aws_ec2_ami_copy.results }}'
   loop_control:
