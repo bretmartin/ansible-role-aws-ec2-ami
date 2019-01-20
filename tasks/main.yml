@@ -20,10 +20,11 @@
     _aws_ec2_ami_all: >-
       {{ _aws_ec2_ami_all
          | default([])
-         | union([item | basename | splitext | first]) }}
+         | union([_aws_ec2_ami_filename | basename | splitext | first]) }}
   with_fileglob: 'host_vars/{{ inventory_hostname }}/ec2-ami/*.yml'
   loop_control:
-    label: '{{ item | basename | splitext | first }}'
+    label: '{{ _aws_ec2_ami_filename | basename | splitext | first }}'
+    loop_var: _aws_ec2_ami_filename
 
 - name: call optional notifier
   include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
@@ -51,10 +52,12 @@
   include_tasks: instances.yml
   vars:
     _aws_ec2_ami_file: >-
-      host_vars/{{ inventory_hostname }}/ec2-ami/{{ ami }}.yml
+      host_vars/{{ inventory_hostname }}/ec2-ami/{{
+        _aws_ec2_ami_shortname
+      }}.yml
   with_items: '{{ _aws_ec2_ami | difference(["defaults"]) }}'
   loop_control:
-    loop_var: ami
+    loop_var: _aws_ec2_ami_shortname
 
 - include_role:
     name: aws-vpc
@@ -64,9 +67,9 @@
   include_role:
     name: aws-ec2
     tasks_from: instance
-  vars:
-    _aws_ec2_i: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
+  loop_control:
+    loop_var: _aws_ec2_i
 
 - name: initialize unencrypted AMI list
   set_fact:
@@ -74,9 +77,10 @@
 
 - name: create unencrypted AMIs
   include_tasks: ami.yml
-  vars:
-    instance: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
+  loop_control:
+    label: '{{ instance.ami_shortname }}'
+    loop_var: instance
 
 - name: find unencrypted AMIs, waiting for them to be available
   ec2_ami_facts:
@@ -101,9 +105,10 @@
 
 - name: terminate temporary instances
   include_tasks: instances_terminate.yml
-  vars:
-    instance: '{{ item }}'
   with_items: '{{ _aws_ec2_ami_instances }}'
+  loop_control:
+    label: '{{ instance.ami_shortname }}'
+    loop_var: instance
 
 - name: create encrypted AMIs
   include_tasks: amis_encrypted.yml

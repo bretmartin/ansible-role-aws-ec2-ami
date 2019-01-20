@@ -39,10 +39,10 @@
 
     region: '{{ aws_region }}'
     source_region: '{{ aws_region }}'
-    source_image_id: '{{ item.image_id }}'
+    source_image_id: '{{ _aws_ec2_ami_intermediate_ami.image_id }}'
     name: >-
       {{
-        item.name
+        _aws_ec2_ami_intermediate_ami.name
         | regex_replace(
             "\[" + aws_ec2_ami_organization_shortname + " (.+) to-encrypt\]",
              "[" + aws_ec2_ami_organization_shortname + " \1 encrypted]"
@@ -50,21 +50,22 @@
       }}
     description: >-
       {{
-        item.description
+        _aws_ec2_ami_intermediate_ami.description
         | regex_replace(
             "\[" + aws_ec2_ami_organization_shortname + " (.+) to-encrypt\]",
              "[" + aws_ec2_ami_organization_shortname + " \1 encrypted]"
           )
       }}
     encrypted: yes
-    kms_key_id: '{{ item.tags["KMS Key Alias"] }}'
+    kms_key_id: '{{ _aws_ec2_ami_intermediate_ami.tags["KMS Key Alias"] }}'
     tags:
-      Source AMI ID: '{{ item.tags["Source AMI ID"] }}'
+      Source AMI ID: '{{ _aws_ec2_ami_intermediate_ami.tags["Source AMI ID"] }}'
       To Encrypt: "False"
   with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
   register: _aws_ec2_ami_copy
   loop_control:
-    label: '{{ item.tags["Short Name"] }}'
+    label: '{{ _aws_ec2_ami_intermediate_ami.tags["Short Name"] }}'
+    loop_var: _aws_ec2_ami_intermediate_ami
 
 - name: call optional notifier
   include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
@@ -89,7 +90,7 @@
     # this Ansible module supports automatic role assumption
     filters:
       state: available
-    image_id: '{{ item.image_id }}'
+    image_id: '{{ _aws_ec2_ami_encrypted_ami.image_id }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_encrypted_amis
   until: _aws_ec2_ami_encrypted_amis.images | length == 1
@@ -97,7 +98,13 @@
   delay: 15
   with_items: '{{ _aws_ec2_ami_copy.results }}'
   loop_control:
-    label: '{{ _aws_ec2_ami_encrypted_amis.item.item.tags["Short Name"] }}'
+    label: >-
+      {{
+        _aws_ec2_ami_encrypted_ami
+        ._aws_ec2_ami_intermediate_ami
+        .tags["Short Name"]
+      }}
+    loop_var: _aws_ec2_ami_encrypted_ami
 
 - name: destroy unencrypted versions of encrypted AMIs
   ec2_ami:
@@ -107,12 +114,13 @@
     security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
 
     region: '{{ aws_region }}'
-    image_id: '{{ item.image_id }}'
+    image_id: '{{ _aws_ec2_ami_intermediate_ami.image_id }}'
     state: absent
     delete_snapshot: True
   with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
   loop_control:
-    label: '{{ item.tags["Short Name"] }}'
+    label: '{{ _aws_ec2_ami_intermediate_ami.tags["Short Name"] }}'
+    loop_var: _aws_ec2_ami_intermediate_ami
 
 - name: call optional notifier
   include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
