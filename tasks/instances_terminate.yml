@@ -3,16 +3,12 @@
 - name: >-
     gather facts about temporary instance for '{{ instance.ami_shortname }}' AMI
   ec2_instance_facts:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
-
     filters:
       instance-state-name: ['stopped']
       'tag:Name':        '{{ instance.hostname }}'
       'tag:Environment': 'ami'
       'tag:Function':    '{{ instance.function }}'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_instance_facts
 

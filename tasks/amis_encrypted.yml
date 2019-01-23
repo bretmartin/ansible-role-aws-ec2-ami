@@ -108,15 +108,11 @@
 
 - name: destroy unencrypted versions of encrypted AMIs
   ec2_ami:
-    profile:        '{{ aws_profile }}'
-    aws_access_key: '{{ aws_iam_assume_role_access_key    | default(omit) }}'
-    aws_secret_key: '{{ aws_iam_assume_role_secret_key    | default(omit) }}'
-    security_token: '{{ aws_iam_assume_role_session_token | default(omit) }}'
-
-    region: '{{ aws_region }}'
-    image_id: '{{ _aws_ec2_ami_intermediate_ami.image_id }}'
-    state: absent
     delete_snapshot: True
+    image_id: '{{ _aws_ec2_ami_intermediate_ami.image_id }}'
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    state: absent
   with_items: '{{ _aws_ec2_ami_intermediate_amis }}'
   loop_control:
     label: '{{ _aws_ec2_ami_intermediate_ami.tags["Short Name"] }}'
