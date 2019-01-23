@@ -10,12 +10,9 @@
 
 - name: find source AMI
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
-
     filters: '{{ aws_ec2_ami.source_ami_filters }}'
-    owner:   '{{ aws_ec2_ami.source_ami_owner | default(omit) }}'
-
+    owner: '{{ aws_ec2_ami.source_ami_owner | default(omit) }}'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_facts_source
 
@@ -49,12 +46,9 @@
 
 - name: find intermediate AMI (if applicable, if it already exists)
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
-
     filters: '{{ _aws_ec2_ami_intermediate_ami_filters }}'
-    owner:   '{{ aws_account }}'
-
+    owner: '{{ aws_account }}'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_facts_intermediate
 
@@ -87,12 +81,9 @@
 
 - name: find target AMI (if it already exists)
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
-
     filters: '{{ _aws_ec2_ami_target_ami_filters }}'
-    owner:   '{{ aws_account }}'
-
+    owner: '{{ aws_account }}'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_facts_target
 

@@ -84,11 +84,10 @@
 
 - name: find unencrypted AMIs, waiting for them to be available
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
     filters:
       state: available
     image_id: '{{ _aws_ec2_ami_unencrypted_ami.image_id }}'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_unencrypted_amis_available
   until: _aws_ec2_ami_unencrypted_amis_available.images | length == 1

@@ -2,11 +2,10 @@
 
 - name: wait for none of the AMIs to be encrypted to be "pending"
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
     filters:
       state: pending
       'tag:To Encrypt': 'True'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_amis_to_encrypt_pending
   until: _aws_ec2_ami_amis_to_encrypt_pending.images | length == 0
@@ -19,11 +18,10 @@
 
 - name: find intermediate AMIs awaiting encryption
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
     filters:
       state: available
       'tag:To Encrypt': 'True'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_amis_to_encrypt_available
 
@@ -34,20 +32,6 @@
 
 - name: 'copy to encrypted AMI'
   ec2_ami_copy:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
-
-    region: '{{ aws_region }}'
-    source_region: '{{ aws_region }}'
-    source_image_id: '{{ _aws_ec2_ami_intermediate_ami.image_id }}'
-    name: >-
-      {{
-        _aws_ec2_ami_intermediate_ami.name
-        | regex_replace(
-            "\[" + aws_ec2_ami_organization_shortname + " (.+) to-encrypt\]",
-             "[" + aws_ec2_ami_organization_shortname + " \1 encrypted]"
-          )
-      }}
     description: >-
       {{
         _aws_ec2_ami_intermediate_ami.description
@@ -58,6 +42,18 @@
       }}
     encrypted: yes
     kms_key_id: '{{ _aws_ec2_ami_intermediate_ami.tags["KMS Key Alias"] }}'
+    name: >-
+      {{
+        _aws_ec2_ami_intermediate_ami.name
+        | regex_replace(
+            "\[" + aws_ec2_ami_organization_shortname + " (.+) to-encrypt\]",
+             "[" + aws_ec2_ami_organization_shortname + " \1 encrypted]"
+          )
+      }}
+    profile: '{{ aws_profile }}'
+    region: '{{ aws_region }}'
+    source_image_id: '{{ _aws_ec2_ami_intermediate_ami.image_id }}'
+    source_region: '{{ aws_region }}'
     tags:
       Source AMI ID: '{{ _aws_ec2_ami_intermediate_ami.tags["Source AMI ID"] }}'
       To Encrypt: "False"
@@ -86,11 +82,10 @@
 
 - name: find encrypted AMIs, waiting for expected ones to be available
   ec2_ami_facts:
-    profile: '{{ aws_profile }}'
-    # this Ansible module supports automatic role assumption
     filters:
       state: available
     image_id: '{{ _aws_ec2_ami_encrypted_ami.image_id }}'
+    profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_encrypted_amis
   until: _aws_ec2_ami_encrypted_amis.images | length == 1
