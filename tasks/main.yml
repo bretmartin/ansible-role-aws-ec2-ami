@@ -27,7 +27,8 @@
     loop_var: _aws_ec2_ami_filename
 
 - name: call optional notifier
-  include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
+  include_role:
+    name: '{{ notifier_role }}'
   vars:
     message: >
       started running role <b>aws-ec2-ami</b>
@@ -113,7 +114,8 @@
   include_tasks: amis_encrypted.yml
 
 - name: call optional notifier
-  include_tasks: 'roles/{{ notifier_role }}/tasks/main.yml'
+  include_role:
+    name: '{{ notifier_role }}'
   vars:
     message: >
       finished running role <b>aws-ec2-ami</b>
