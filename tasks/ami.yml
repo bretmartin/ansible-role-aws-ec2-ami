@@ -10,7 +10,9 @@
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_instance_facts
-  until: _aws_ec2_ami_instance_facts.instances | length == 1
+  until: >
+    ("instances" in _aws_ec2_ami_instance_facts) and
+    (_aws_ec2_ami_instance_facts.instances | length == 1)
   retries: 720
   delay: 15
 
