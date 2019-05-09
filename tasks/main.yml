@@ -91,7 +91,9 @@
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_unencrypted_amis_available
-  until: _aws_ec2_ami_unencrypted_amis_available.images | length == 1
+  until: >
+    "images" in _aws_ec2_ami_unencrypted_amis_available and
+    _aws_ec2_ami_unencrypted_amis_available.images | length == 1
   retries: 720
   delay: 15
   with_items: '{{ _aws_ec2_ami_unencrypted_amis }}'

@@ -8,7 +8,9 @@
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_amis_to_encrypt_pending
-  until: _aws_ec2_ami_amis_to_encrypt_pending.images | length == 0
+  until: >
+    ("images" in _aws_ec2_ami_amis_to_encrypt_pending) and
+    (_aws_ec2_ami_amis_to_encrypt_pending.images | length == 0)
   retries: 720
   delay: 15
 
@@ -89,7 +91,9 @@
     profile: '{{ aws_profile }}'
     region: '{{ aws_region }}'
   register: _aws_ec2_ami_encrypted_amis
-  until: _aws_ec2_ami_encrypted_amis.images | length == 1
+  until: >
+    ("images" in _aws_ec2_ami_encrypted_amis) and
+    (_aws_ec2_ami_encrypted_amis.images | length == 1)
   retries: 720
   delay: 15
   with_items: '{{ _aws_ec2_ami_copy.results }}'
